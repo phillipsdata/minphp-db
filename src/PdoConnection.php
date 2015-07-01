@@ -3,7 +3,6 @@ namespace minphp\Db;
 
 use PDO;
 use PDOStatement;
-use PDOException;
 use RuntimeException;
 use InvalidArgumentException;
 
@@ -63,14 +62,22 @@ class PdoConnection
      * the given database info, or the default configured info set in the database
      * config file if no info is given
      *
-     * @param array $dbInfo Database information for this connection
+     * @param array $dbInfo Database information for this connection:
+     *  - driver DB Driver
+     *  - host DB Host
+     *  - database DB name
+     *  - user DB User
+     *  - pass DB Password
+     *  - port DB Port
+     *  - options Array of PDO connection options
      */
-    public function __construct(array $dbInfo = null) {
+    public function __construct(array $dbInfo)
+    {
         $this->dbInfo = $dbInfo;
     }
 
     /**
-     * Attemps to initialize a connection to the database if one does not already exist.
+     * Attemps to initialize a connection to the database if one does not already exist
      *
      * @return PDO The PDO connection
      */
@@ -80,16 +87,49 @@ class PdoConnection
         if ($connection instanceof PDO) {
             return $connection;
         }
-        return $this->makeConnection($this->dbInfo);
+
+        // Attempt to reuse an existing connection if one exists that matches this connection
+        if ($this->reuseConnection
+            && ($key = array_search($this->dbInfo, self::$dbInfos)) !== false
+        ) {
+            $connection = self::$connections[$key];
+            $this->setConnection($connection);
+            return $connection;
+        }
+
+        $dsn = $this->makeDsn($this->dbInfo);
+        $username = isset($this->dbInfo['user'])
+            ? $this->dbInfo['user']
+            : null;
+        $password = isset($this->dbInfo['pass'])
+            ? $this->dbInfo['pass']
+            : null;
+        $options = (array) (
+                isset($this->dbInfo['options'])
+                ? $this->dbInfo['options']
+                : null
+            )
+            + $this->options;
+
+        $connection = $this->makeConnection($dsn, $username, $password, $options);
+
+        self::$connections[] = $connection;
+        self::$dbInfos[] = $this->dbInfo;
+        $this->setConnection($connection);
+
+        return $connection;
     }
 
     /**
+     * Set whether or not to reuse an existing connection
      *
      * @param boolean $enable True to reuse an existing matching connection if available
+     * @return PdoConnection
      */
     public function reuseConnection($enable)
     {
         $this->reuseConnection = $enable;
+        return $this;
     }
 
     /**
@@ -120,10 +160,12 @@ class PdoConnection
      *
      * @param long $attribute The attribute to set
      * @param int $value The value to assign to the attribute
+     * @return PdoConnection
      */
     public function setAttribute($attribute, $value)
     {
         $this->connect()->setAttribute($attribute, $value);
+        return $this;
     }
 
     /**
@@ -223,20 +265,12 @@ class PdoConnection
      * Set the PDO connection to use
      *
      * @param PDO $connection
+     * @return PdoConnection
      */
     public function setConnection(PDO $connection)
     {
         $this->connection = $connection;
-    }
-
-    /**
-     * Return all registered connections available
-     *
-     * @return array
-     */
-    public function getRegisteredConnections()
-    {
-        return $this->connections;
+        return $this;
     }
 
     /**
@@ -275,71 +309,23 @@ class PdoConnection
             );
         }
 
-        return $db['driver'] . ":dbname=" . $db['database'] . ";host=" . $db['host']
-            . (
-                isset($db['port'])
-                ? ";port=" . $db['port']
-                : ""
-            );
+        return isset($db['port'])
+            ? $db['driver'] . ':host=' . $db['host'] . ';dbname=' . $db['database'] . ';port=' . $db['port']
+            : $db['driver'] . ':host=' . $db['host'] . ';dbname=' . $db['database'];
     }
 
     /**
      * Establish a new PDO connection using the given array of information. If
      * a connection already exists, no new connection will be created.
      *
-     * @param array $dbInfo Database information for this connection
+     * @param string $dsn
+     * @param string $username
+     * @param string $password
+     * @param array $options
      * @return \PDO The connection
-     * @throws RuntimeException Throw when PDOException is encountered
      */
-    private function makeConnection(array $dbInfo)
+    private function makeConnection($dsn, $username, $password, $options)
     {
-        // Attempt to reuse an existing connection if one exists that matches this connection
-        if ($this->reuseConnection
-            && ($key = array_search($dbInfo, self::$dbInfos)) !== false
-        ) {
-            $this->setConnection(self::$connections[$key]);
-            return $this->getConnection();
-        }
-
-        // Override any default settings with those provided
-        $options = (array) (
-                isset($dbInfo['options'])
-                ? $dbInfo['options']
-                : null
-            )
-            + $this->options;
-
-        try {
-            $this->setConnection(new PDO(
-                $this->makeDsn($dbInfo),
-                (
-                    isset($dbInfo['user'])
-                    ? $dbInfo['user']
-                    : null
-                ),
-                (
-                    isset($dbInfo['pass'])
-                    ? $dbInfo['pass']
-                    : null
-                ),
-                $options
-            ));
-            $connection = $this->getConnection();
-
-            // Record the connection
-            self::$connections[] = $connection;
-            self::$dbInfos[] = $dbInfo;
-
-            // Run a character set query to override the database server's default character set
-            if (!empty($dbInfo['charset_query'])) {
-                $this->query($dbInfo['charset_query']);
-            }
-            return $connection;
-
-        } catch (PDOException $e) {
-            throw new RuntimeException($e->getMessage());
-        }
-
-        throw new RuntimeException('Connection could not be established.');
+        return new PDO($dsn, $username, $password, $options);
     }
 }

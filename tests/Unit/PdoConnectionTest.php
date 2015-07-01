@@ -11,7 +11,7 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
 {
     public function setUp()
     {
-        $this->connection = new PdoConnection();
+        $this->connection = new PdoConnection(array());
     }
 
     /**
@@ -211,7 +211,7 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
             'host' => 'localhost',
             'port' => '8889'
         );
-        $expected = 'mysql:dbname=database;host=localhost;port=8889';
+        $expected = 'mysql:host=localhost;dbname=database;port=8889';
 
         $this->assertEquals($expected, $this->connection->makeDsn($info));
     }
@@ -224,5 +224,14 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
     public function testMakeDsnException()
     {
         $this->connection->makeDsn(array());
+    }
+
+    /**
+     * @covers ::reuseConnection
+     * @covers ::__construct
+     */
+    public function testReuseConnection()
+    {
+        $this->assertSame($this->connection->reuseConnection(true), $this->connection);
     }
 }
