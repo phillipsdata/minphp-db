@@ -1,11 +1,11 @@
 <?php
-namespace minphp\Db\Tests\Unit;
+namespace Minphp\Db\Tests\Unit;
 
-use minphp\Db\PdoConnection;
+use Minphp\Db\PdoConnection;
 use PHPUnit_Framework_TestCase;
 
 /**
- * @coversDefaultClass minphp\Db\PdoConnection
+ * @coversDefaultClass Minphp\Db\PdoConnection
  */
 class PdoConnectionTest extends PHPUnit_Framework_TestCase
 {
@@ -50,7 +50,7 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
         $attribute = 'attribute';
         $value = 'value';
 
-        $mockConnection = $this->getMockBuilder('\minphp\Db\Tests\MockablePdo')
+        $mockConnection = $this->getMockBuilder('\Minphp\Db\Tests\MockablePdo')
             ->getMock();
         $mockConnection->expects($this->once())
             ->method('setAttribute')
@@ -66,7 +66,7 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
      * @covers ::getConnection
      * @covers ::setConnection
      * @covers ::connect
-     * @uses \minphp\Db\PdoConnection::prepare
+     * @uses \Minphp\Db\PdoConnection::prepare
      */
     public function testQuery()
     {
@@ -79,7 +79,7 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
             ->method('execute')
             ->with($this->equalTo($params));
 
-        $mockConnection = $this->getMockBuilder('\minphp\Db\Tests\MockablePdo')
+        $mockConnection = $this->getMockBuilder('\Minphp\Db\Tests\MockablePdo')
             ->getMock();
         $mockConnection->expects($this->once())
             ->method('prepare')
@@ -107,7 +107,7 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
             ->method('setFetchMode')
             ->with($this->anything());
 
-        $mockConnection = $this->getMockBuilder('\minphp\Db\Tests\MockablePdo')
+        $mockConnection = $this->getMockBuilder('\Minphp\Db\Tests\MockablePdo')
             ->getMock();
         $mockConnection->expects($this->once())
             ->method('prepare')
@@ -165,7 +165,7 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
      */
     private function mockConnection($method, $return)
     {
-        $mockConnection = $this->getMockBuilder('\minphp\Db\Tests\MockablePdo')
+        $mockConnection = $this->getMockBuilder('\Minphp\Db\Tests\MockablePdo')
             ->getMock();
         $mockConnection->expects($this->once())
             ->method($method)

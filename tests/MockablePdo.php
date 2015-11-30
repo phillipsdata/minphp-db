@@ -1,5 +1,5 @@
 <?php
-namespace minphp\Db\Tests;
+namespace Minphp\Db\Tests;
 
 use PDO;
 

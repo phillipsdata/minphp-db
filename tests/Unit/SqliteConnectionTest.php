@@ -1,17 +1,17 @@
 <?php
-namespace minphp\Db\Tests\Unit;
+namespace Minphp\Db\Tests\Unit;
 
-use minphp\Db\SqliteConnection;
+use Minphp\Db\SqliteConnection;
 use PHPUnit_Framework_TestCase;
 
 /**
- * @coversDefaultClass minphp\Db\SqliteConnection
+ * @coversDefaultClass \Minphp\Db\SqliteConnection
  */
 class SqliteConnectionTest extends PHPUnit_Framework_TestCase
 {
     /**
      * @covers ::makeDsn
-     * @uses \minphp\Db\PdoConnection
+     * @uses \Minphp\Db\PdoConnection
      */
     public function testMakeDsn()
     {
