@@ -1,12 +1,12 @@
 <?php
-namespace minphp\Db\Tests\Integration;
+namespace Minphp\Db\Tests\Integration;
 
-use minphp\Db\PdoConnection;
-use minphp\Db\SqliteConnection;
+use Minphp\Db\PdoConnection;
+use Minphp\Db\SqliteConnection;
 use PHPUnit_Framework_TestCase;
 
 /**
- * @coversDefaultClass minphp\Db\PdoConnection
+ * @coversDefaultClass Minphp\Db\PdoConnection
  */
 class PdoConnectionTest extends PHPUnit_Framework_TestCase
 {
@@ -22,7 +22,7 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
      * @covers ::__construct
      * @covers ::setConnection
      * @covers ::getConnection
-     * @covers \minphp\Db\SqliteConnection::makeDsn
+     * @covers \Minphp\Db\SqliteConnection::makeDsn
      * @covers ::makeConnection
      * @covers ::query
      * @covers ::prepare
@@ -39,7 +39,7 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
      * @covers ::getConnection
      * @covers ::setConnection
      * @covers ::connect
-     * @covers \minphp\Db\SqliteConnection::makeDsn
+     * @covers \Minphp\Db\SqliteConnection::makeDsn
      * @covers ::makeConnection
      */
     public function testReuseConnection()
