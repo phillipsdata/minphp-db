@@ -18,9 +18,9 @@
         "squizlabs/php_codesniffer": "~2.2"
     },
     "autoload": {
-        "psr-4": {"minphp\\Db\\": "src"}
+        "psr-4": {"Minphp\\Db\\": "src"}
     },
     "autoload-dev": {
-        "psr-4": {"minphp\\Db\\Tests\\": "tests"}
+        "psr-4": {"Minphp\\Db\\Tests\\": "tests"}
     }
 }
