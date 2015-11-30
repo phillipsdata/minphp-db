@@ -17,7 +17,7 @@ composer require minphp/db:dev-master
 ## Basic Usage
 
 ```php
-use minphp\Db\PdoConnection;
+use Minphp\Db\PdoConnection;
 
 $dbInfo = array(
     'driver' => 'mysql',
@@ -36,7 +36,7 @@ $connection->query('SELECT * FROM table WHERE id=?', 1);
 By default, PdoConnection will only connect to the database when a connection is required. To explicitly connect to the database use `connect()`:
 
 ```php
-use minphp\Db\PdoConnection;
+use Minphp\Db\PdoConnection;
 
 $dbInfo = array(
     'driver' => 'mysql',

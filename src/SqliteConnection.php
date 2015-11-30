@@ -1,5 +1,5 @@
 <?php
-namespace minphp\Db;
+namespace Minphp\Db;
 
 class SqliteConnection extends PdoConnection
 {
