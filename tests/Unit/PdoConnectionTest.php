@@ -141,12 +141,10 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
      */
     public function testRollBack()
     {
-        // begin and rollback transaction
         $this->connection->setConnection($this->mockConnection('rollBack', true));
         $this->connection->begin();
         $this->assertTrue($this->connection->rollBack());
 
-        // Since there is no open transaction, this should return false
         $this->assertFalse($this->connection->rollBack());
     }
 
