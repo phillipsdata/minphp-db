@@ -173,12 +173,19 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
     public function nestedTransactionData()
     {
         return array(
-            array(array('commit', 'commit', 'commit'), true),
-            array(array('rollback', 'rollback', 'rollback'), true),
-            array(array('commit', 'commit', 'rollback'), true),
-            array(array('rollback', 'commit', 'rollback'), true),
-            array(array('rollback', 'commit'), false),
-            array(array('commit', 'rollback', 'commit'), false)
+            array(array('begin', 'begin', 'begin', 'commit', 'commit', 'commit'), true),
+            array(array('begin', 'begin', 'begin', 'rollback', 'rollback', 'rollback'), true),
+            array(array('begin', 'begin', 'begin', 'commit', 'commit', 'rollback'), true),
+            array(array('begin', 'begin', 'begin', 'rollback', 'commit', 'rollback'), true),
+            array(array('commit', 'begin', 'begin', 'commit'), true),
+            array(array('rollback', 'begin', 'begin', 'rollback'), true),
+            array(array('rollback', 'rollback', 'begin', 'begin'), true),
+            array(array('commit', 'commit', 'begin', 'begin'), true),
+            array(array('begin', 'begin', 'rollback', 'commit'), false),
+            array(array('begin', 'begin', 'begin', 'commit', 'rollback', 'commit'), false),
+            array(array('rollback', 'begin', 'begin', 'commit'), false),
+            array(array('begin', 'commit', 'commit'), false),
+            array(array('begin', 'rollback', 'rollback'), false)
         );
     }
 
@@ -197,15 +204,18 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
      */
     public function testNestedTransactions(array $actions, $return)
     {
-        $this->connection->setConnection($this->mockConnection('beginTransaction', true));
-        foreach ($actions as $action) {
-            $this->assertTrue($this->connection->begin());
-        }
-
+        $transactions = 0;
         $end = count($actions) - 1;
         foreach ($actions as $index => $action) {
-            if ($index === $end && $return) {
-                $this->connection->setConnection($this->mockConnection($action, true));
+            if ($action == 'begin') {
+                if ($transactions++ === 0) {
+                    $this->connection->setConnection($this->mockConnection('beginTransaction', true));
+                }
+            } else {
+                $transactions--;
+                if ($index === $end && $return) {
+                    $this->connection->setConnection($this->mockConnection($action, true));
+                }
             }
 
             $actual = $this->connection->{$action}();
