@@ -242,16 +242,18 @@ class PdoConnection
             return $this->connect()->beginTransaction();
         }
 
-        return ($this->transactionCount >= 0);
+        return $this->transactionCount >= 0;
     }
 
     /**
-     * Rolls back and closes the transaction
+     * Rolls back and closes the transaction or mark this transaction set for rollback
      *
-     * @return boolean True if the transaction was successfully rolled back and closed, false otherwise
+     * @return boolean True if this is the outermost transaction and it was successfully rolled
+     *  back and closed, false otherwise
      */
     public function rollBack()
     {
+        // Rollback if this is the outermost transaction, otherwise mark the set as erroring
         if (--$this->transactionCount === 0) {
             $this->rollbackNeeded = false;
             return $this->connect()->rollBack();
@@ -262,23 +264,26 @@ class PdoConnection
     }
 
     /**
-     * Commits a transaction
+     * Commits a transaction or rolls back an erroring transaction set
      *
-     * @return boolean True if the transaction was successfully commited and closed, false otherwise
+     * @return boolean True if the transaction was successfully commited, closed, and this is the outermost
+     *  transaction or this is a non-erroring inner transaction, false otherwise
      */
     public function commit()
     {
+        $return = null;
         if (--$this->transactionCount === 0) {
-            if (!$this->rollbackNeeded) {
-                return $this->connect()->commit();
+            // Rollback if this transaction set is erroring, commit otherwise
+            if ($this->rollbackNeeded) {
+                $this->rollbackNeeded = false;
+                $this->connect()->rollback();
+                $return = false;
+            } else {
+                $return = $this->connect()->commit();
             }
-
-            $this->rollbackNeeded = false;
-            $this->connect()->rollback();
-            return false;
         }
 
-        return ($this->transactionCount >= 0 && !$this->rollbackNeeded);
+        return (isset($return) ? $return : $this->transactionCount >= 0 && !$this->rollbackNeeded);
     }
 
     /**

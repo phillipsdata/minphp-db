@@ -134,6 +134,7 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
     /**
      * @covers ::rollBack
      * @covers ::__construct
+     * @covers ::begin
      * @covers ::getConnection
      * @covers ::setConnection
      * @covers ::connect
@@ -152,21 +153,25 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
     /**
      * @covers ::commit
      * @covers ::__construct
+     * @covers ::begin
      * @covers ::getConnection
      * @covers ::setConnection
      * @covers ::connect
      */
     public function testCommit()
     {
-        // begin and commit transaction
         $this->connection->setConnection($this->mockConnection('commit', true));
         $this->connection->begin();
         $this->assertTrue($this->connection->commit());
 
-        // Since there is no open transaction, this should return false
         $this->assertFalse($this->connection->commit());
     }
 
+    /**
+     * Passes a list of data sets to pass to testNestedTransacitons
+     *
+     * @return array A list of data sets to pass to testNestedTransacitons
+     */
     public function nestedTransactionData()
     {
         return array(
@@ -199,17 +204,15 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
             $this->assertTrue($this->connection->begin());
         }
 
-        end($actions);
-        $end_index = key($actions);
-        reset($actions);
+        $end = count($actions) - 1;
         foreach ($actions as $index => $action) {
-            if ($index === $end_index) {
-                if ($return) {
-                    $this->connection->setConnection($this->mockConnection($action, true));
-                }
-                $this->assertEquals($return, $this->connection->{$action}());
-            } else {
-                $this->connection->{$action}();
+            if ($index === $end && $return) {
+                $this->connection->setConnection($this->mockConnection($action, true));
+            }
+
+            $actual = $this->connection->{$action}();
+            if ($index === $end) {
+                $this->assertEquals($return, $actual);
             }
         }
     }
