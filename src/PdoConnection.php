@@ -58,6 +58,16 @@ class PdoConnection
     private $reuseConnection = true;
 
     /**
+     * @var int Number of open transactions
+     */
+    private $transactionCount = 0;
+
+    /**
+     * @var bool Flag that tells whether a rollback is needed
+     */
+    private $rollbackNeeded = false;
+
+    /**
      * Creates a new Model object that establishes a new PDO connection using
      * the given database info, or the default configured info set in the database
      * config file if no info is given
@@ -228,7 +238,11 @@ class PdoConnection
      */
     public function begin()
     {
-        return $this->connect()->beginTransaction();
+        if (!$this->transactionCount++) {
+            return $this->connect()->beginTransaction();
+        }
+
+        return ($this->transactionCount >= 0);
     }
 
     /**
@@ -238,7 +252,13 @@ class PdoConnection
      */
     public function rollBack()
     {
-        return $this->connect()->rollBack();
+        if (--$this->transactionCount === 0) {
+            $this->rollbackNeeded = false;
+            return $this->connect()->rollBack();
+        }
+
+        $this->rollbackNeeded = true;
+        return false;
     }
 
     /**
@@ -248,7 +268,17 @@ class PdoConnection
      */
     public function commit()
     {
-        return $this->connect()->commit();
+        if (--$this->transactionCount === 0) {
+            if (!$this->rollbackNeeded) {
+                return $this->connect()->commit();
+            }
+
+            $this->rollbackNeeded = false;
+            $this->connect()->rollback();
+            return false;
+        }
+
+        return ($this->transactionCount >= 0 && !$this->rollbackNeeded);
     }
 
     /**
