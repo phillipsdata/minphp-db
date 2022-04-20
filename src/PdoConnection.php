@@ -238,7 +238,11 @@ class PdoConnection
      */
     public function rollBack()
     {
-        return $this->connect()->rollBack();
+        if ($this->connect()->inTransaction()) {
+            return $this->connect()->rollBack();
+        }
+
+        return false;
     }
 
     /**
@@ -248,7 +252,11 @@ class PdoConnection
      */
     public function commit()
     {
-        return $this->connect()->commit();
+        if ($this->connect()->inTransaction()) {
+            return $this->connect()->commit();
+        }
+
+        return false;
     }
 
     /**
