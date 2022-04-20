@@ -58,6 +58,16 @@ class PdoConnection
     private $reuseConnection = true;
 
     /**
+     * @var int Number of open transactions
+     */
+    private $transactionCount = 0;
+
+    /**
+     * @var bool Flag that tells whether a rollback is needed
+     */
+    private $rollbackNeeded = false;
+
+    /**
      * Creates a new Model object that establishes a new PDO connection using
      * the given database info, or the default configured info set in the database
      * config file if no info is given
@@ -228,27 +238,52 @@ class PdoConnection
      */
     public function begin()
     {
-        return $this->connect()->beginTransaction();
+        if (!$this->transactionCount++) {
+            return $this->connect()->beginTransaction();
+        }
+
+        return $this->transactionCount >= 0;
     }
 
     /**
-     * Rolls back and closes the transaction
+     * Rolls back and closes the transaction or mark this transaction set for rollback
      *
-     * @return boolean True if the transaction was successfully rolled back and closed, false otherwise
+     * @return boolean True if this is the outermost transaction and it was successfully rolled
+     *  back and closed, false otherwise
      */
     public function rollBack()
     {
-        return $this->connect()->rollBack();
+        // Rollback if this is the outermost transaction, otherwise mark the set as erroring
+        if (--$this->transactionCount === 0) {
+            $this->rollbackNeeded = false;
+            return $this->connect()->rollBack();
+        }
+
+        $this->rollbackNeeded = true;
+        return false;
     }
 
     /**
-     * Commits a transaction
+     * Commits a transaction or rolls back an erroring transaction set
      *
-     * @return boolean True if the transaction was successfully commited and closed, false otherwise
+     * @return boolean True if the transaction was successfully commited, closed, and this is the outermost
+     *  transaction or this is a non-erroring inner transaction, false otherwise
      */
     public function commit()
     {
-        return $this->connect()->commit();
+        $return = null;
+        if (--$this->transactionCount === 0) {
+            // Rollback if this transaction set is erroring, commit otherwise
+            if ($this->rollbackNeeded) {
+                $this->rollbackNeeded = false;
+                $this->connect()->rollback();
+                $return = false;
+            } else {
+                $return = $this->connect()->commit();
+            }
+        }
+
+        return (isset($return) ? $return : $this->transactionCount >= 0 && !$this->rollbackNeeded);
     }
 
     /**

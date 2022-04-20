@@ -134,6 +134,7 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
     /**
      * @covers ::rollBack
      * @covers ::__construct
+     * @covers ::begin
      * @covers ::getConnection
      * @covers ::setConnection
      * @covers ::connect
@@ -141,12 +142,16 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
     public function testRollBack()
     {
         $this->connection->setConnection($this->mockConnection('rollBack', true));
+        $this->connection->begin();
         $this->assertTrue($this->connection->rollBack());
+
+        $this->assertFalse($this->connection->rollBack());
     }
 
     /**
      * @covers ::commit
      * @covers ::__construct
+     * @covers ::begin
      * @covers ::getConnection
      * @covers ::setConnection
      * @covers ::connect
@@ -154,7 +159,70 @@ class PdoConnectionTest extends PHPUnit_Framework_TestCase
     public function testCommit()
     {
         $this->connection->setConnection($this->mockConnection('commit', true));
+        $this->connection->begin();
         $this->assertTrue($this->connection->commit());
+
+        $this->assertFalse($this->connection->commit());
+    }
+
+    /**
+     * Passes a list of data sets to pass to testNestedTransacitons
+     *
+     * @return array A list of data sets to pass to testNestedTransacitons
+     */
+    public function nestedTransactionData()
+    {
+        return array(
+            array(array('begin', 'begin', 'begin', 'commit', 'commit', 'commit'), true),
+            array(array('begin', 'begin', 'begin', 'rollback', 'rollback', 'rollback'), true),
+            array(array('begin', 'begin', 'begin', 'commit', 'commit', 'rollback'), true),
+            array(array('begin', 'begin', 'begin', 'rollback', 'commit', 'rollback'), true),
+            array(array('commit', 'begin', 'begin', 'commit'), true),
+            array(array('rollback', 'begin', 'begin', 'rollback'), true),
+            array(array('rollback', 'rollback', 'begin', 'begin'), true),
+            array(array('commit', 'commit', 'begin', 'begin'), true),
+            array(array('begin', 'begin', 'rollback', 'commit'), false),
+            array(array('begin', 'begin', 'begin', 'commit', 'rollback', 'commit'), false),
+            array(array('rollback', 'begin', 'begin', 'commit'), false),
+            array(array('begin', 'commit', 'commit'), false),
+            array(array('begin', 'rollback', 'rollback'), false)
+        );
+    }
+
+    /**
+     * @covers ::__construct
+     * @covers ::begin
+     * @covers ::commit
+     * @covers ::rollback
+     * @covers ::connect
+     * @covers ::getConnection
+     * @covers ::setConnection
+     * @dataProvider nestedTransactionData
+     *
+     * @param array $actions
+     * @param bool $return
+     */
+    public function testNestedTransactions(array $actions, $return)
+    {
+        $transactions = 0;
+        $end = count($actions) - 1;
+        foreach ($actions as $index => $action) {
+            if ($action == 'begin') {
+                if ($transactions++ === 0) {
+                    $this->connection->setConnection($this->mockConnection('beginTransaction', true));
+                }
+            } else {
+                $transactions--;
+                if ($index === $end && $return) {
+                    $this->connection->setConnection($this->mockConnection($action, true));
+                }
+            }
+
+            $actual = $this->connection->{$action}();
+            if ($index === $end) {
+                $this->assertEquals($return, $actual);
+            }
+        }
     }
 
     /**
